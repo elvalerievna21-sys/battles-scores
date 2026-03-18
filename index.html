@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Баллы Батлов — В реальном времени (сумма баллов)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a56db;
+      margin-bottom: 10px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background-color: #1a56db;
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 20px;
+      background-color: #e9ecef;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .controls button {
+      padding: 10px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .controls button#exportBtn {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .controls button#exportBtn:hover {
+      background-color: #218838;
+    }
+
+    .controls button#resetBtn {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .controls button#resetBtn:hover {
+      background-color: #c82333;
+    }
+
+    .info {
+      text-align: center;
+      padding: 15px;
+      font-size: 13px;
+      color: #666;
+      background-color: #f8f9fa;
+      border-top: 1px solid #ddd;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #1a56db;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #f0f4f8;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .criterion {
+      vertical-align: top;
+      text-align: left;
+      padding: 12px 8px;
+      background-color: #fdfdfd;
+    }
+
+    .score-input {
+      width: 60px;
+      height: 36px;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin: 0 auto;
+    }
+
+    .score-input:invalid {
+      border-color: #dc3545;
+    }
+
+    .total-row {
+      font-weight: bold;
+      background-color: #e9ecef;
+    }
+
+    .average {
+      font-weight: 600;
+      color: #1a56db;
+    }
+
+    .comment {
+      width: 100%;
+      height: 36px;
+      padding: 5px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+      color: #1a56db;
+      text-decoration: underline;
+      font-size: 12px;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 220px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -110px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 13px;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .warning {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 2px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Баллы Батлов — В реальном времени</h1>
+    <div class="status" id="status">Ожидание подключения...</div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <strong>Команда №1:</strong> <span id="team1Name">Команда 1</span>
+      <br>
+      <strong>Команда №2:</strong> <span id="team2Name">Команда 2</span>
+    </div>
+    <div>
+      <button id="exportBtn">Экспорт в Excel</button>
+      <button id="resetBtn">Сбросить</button>
+    </div>
+  </div>
+
+  <table id="scoreTable">
+    <thead>
+      <tr>
+        <th>Навык</th>
+        <th colspan="2">Команда №1<br><small>(Оценка 1 / Оценка 2)</small></th>
+        <th colspan="2">Команда №2<br><small>(Оценка 1 / Оценка 2)</small></th>
+        <th>Комментарий</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Генерируется JS -->
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="3" style="text-align: right;"><strong>Итог по команде 1:</strong></td>
+        <td colspan="3" style="text-align: center;"><span id="totalTeam1">0</span></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="3" style="text-align: right;"><strong>Итог по команде 2:</strong></td>
+        <td colspan="3" style="text-align: center;"><span id="totalTeam2">0</span></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="info">
+    <strong>Итог:</strong> 
+    <span id="totalTeam1">0</span> / <span id="totalTeam2">0</span> (по 16 критериям)
+  </div>
+</div>
+
+<script>
+  // === Конфигурация ===
+  const CHANNEL_NAME = 'battles_scores';
+  const SESSION_ID = new URLSearchParams(window.location.search).get('id') || 'session-' + Math.random().toString(36).substr(2, 8);
+  const JUDGE_ID = 'judge-' + Math.random().toString(36).substr(2, 5);
+
+  const channel = new BroadcastChannel(CHANNEL_NAME);
+
+  // === Данные ===
+  let scores = [];
+
+  // === Критерии ===
+  const criteria = [
+    "Используется классическая трехчастная структура: ТЕЗИС → ГРУППА АРГУМЕНТОВ → ВЫВОД",
+    "Используется продвинутая схема аргументации: Тезис → Аргумент 1 (Рацио) → Аргумент 2 (Эмоцио) → Аргумент 3 (Рацио) → Вывод",
+    "Ясный и точный тезис. Тезис должен быть сформулирован так, чтобы его нельзя было истолковать двояко.",
+    "Неизменность тезиса. Запрещено менять тезис по ходу доказательства. Нельзя начинать с одного утверждения, а заканчивать другим.",
+    "Неочевидность тезиса. Тезис должен нуждаться в доказательстве.",
+    "Истинность аргумента. Аргументы не должны вызывать сомнений. Любой ложный факт разрушает всю конструкцию.",
+    "Непротиворечивость. Аргументы не должны противоречить друг другу.",
+    "Доказательство, а не повторение. Аргумент должен доказывать мысль, а не пересказывать ее другими словами.",
+    "Достаточность. Аргументов должно быть ровно столько, чтобы доказать тезис.",
+    "Группа аргументов: Доказательства, подобранные по принципу «от простого к сложному» или «от рационального к эмоциональному».",
+    "Используется рациональная иллюстрация (достигает логики). Использованы факты, статистика, ссылки на документы, статьи, конкретные кейсы.",
+    "Используется эмоциональная иллюстрация (достигает сердца): вербализуются эмоции, формируются визуальные образы, обращение к чувствам.",
+    "В контраргументации используется техника внешнего согласия: Фраза-смягчитель + Фраза-переход + Контраргумент / развитие тезиса.",
+    "Итог, который логически вытекает из аргументов и возвращает нас к тезису, но уже доказанному.",
+    "Участвуют все/большинство членов команды",
+    "Спикеры от команды включают камеру, используют дополнительные средства визуализации, интерактива с аудиторией",
+    "Ответы на вопросы (исчерпывающий ответ, аргументы с примерами и иллюстрациями)"
+  ];
+
+  // === Генерация таблицы ===
+  const tbody = document.querySelector('#scoreTable tbody');
+
+  criteria.forEach((criterion, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="criterion">
+        <div>${criterion}</div>
+        <div class="tooltip">
+          <span>?</span>
+          <span class="tooltiptext">
+            Введите: 0 (нет), 0.5 (частично), 1 (полностью).<br>
+            Все судьи увидят изменения мгновенно.
+          </span>
+        </div>
+      </td>
+      <td><input type="number" step="0.5" min="0" max="1" class="score-input" data-team="1" data-criterion="${index}" data-field="1" value=""></td>
+      <td><input type="number" step="0.5" min="0" max="1" class="score-input" data-team="1" data-criterion="${index}" data-field="2" value=""></td>
+      <td><input type="number" step="0.5" min="0" max="1" class="score-input" data-team="2" data-criterion="${index}" data-field="1" value=""></td>
+      <td><input type="number" step="0.5" min="0" max="1" class="score-input" data-team="2" data-criterion="${index}" data-field="2" value=""></td>
+      <td><input type="text" class="comment" data-criterion="${index}" placeholder="Комментарий..."></td>
+    `;
+    tbody.appendChild(row);
+
+    scores[index] = {
+      team1: { score1: null, score2: null },
+      team2: { score1: null, score2: null },
+      comment: ''
+    };
+
+    // Обработчики ввода
+    const inputs = row.querySelectorAll('.score-input');
+    inputs.forEach(input => {
+      input.addEventListener('input', function () {
+        const team = this.dataset.team;
+        const criterion = this.dataset.criterion;
+        const field = this.dataset.field;
+        let value = this.value;
+
+        if (value === '' || value === '0' || value === '0.5' || value === '1') {
+          this.setCustomValidity('');
+          this.classList.remove('invalid');
+          value = value === '' ? null : parseFloat(value);
+        } else {
+          this.setCustomValidity('Допустимые значения: 0, 0.5, 1');
+          this.classList.add('invalid');
+          return;
+        }
+
+        scores[criterion][`team${team}`][`score${field}`] = value;
+
+        // Пересчитываем итог
+        updateTotal();
+        channel.postMessage({
+          type: 'update',
+          id: SESSION_ID,
+          judgeId: JUDGE_ID,
+          criterion: +criterion,
+          team: team,
+          field: field,
+          value: value
+        });
+      });
+    });
+
+    // Комментарий
+    row.querySelector('.comment').addEventListener('input', function () {
+      const criterion = this.dataset.criterion;
+      const value = this.value;
+      scores[criterion].comment = value;
+      channel.postMessage({
+        type: 'comment',
+        id: SESSION_ID,
+        judgeId: JUDGE_ID,
+        criterion: +criterion,
+        value: value
+      });
+    });
+  });
+
+  // === Обновление итога (сумма по командам) ===
+  function updateTotal() {
+    let total1 = 0, total2 = 0;
+
+    scores.forEach(s => {
+      if (s.team1.score1 !== null) total1 += s.team1.score1;
+      if (s.team1.score2 !== null) total1 += s.team1.score2;
+
+      if (s.team2.score1 !== null) total2 += s.team2.score1;
+      if (s.team2.score2 !== null) total2 += s.team2.score2;
+    });
+
+    document.getElementById('totalTeam1').textContent = total1.toFixed(2);
+    document.getElementById('totalTeam2').textContent = total2.toFixed(2);
+  }
+
+  // === Экспорт в CSV ===
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    let csv = 'Навык;Оценка 1 (К1);Оценка 2 (К1);Оценка 1 (К2);Оценка 2 (К2);Комментарий\n';
+    scores.forEach((s, i) => {
+      const c = criteria[i];
+      csv += `${c};${s.team1.score1 || ''};${s.team1.score2 || ''};${s.team2.score1 || ''};${s.team2.score2 || ''};${s.comment || ''}\n`;
+    });
+    csv += `Итог по команде 1;;;;${document.getElementById('totalTeam1').textContent};\n`;
+    csv += `Итог по команде 2;;;;${document.getElementById('totalTeam2').textContent};\n`;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `итоги-батлы-${SESSION_ID}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  // === Сброс ===
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (confirm('Сбросить все оценки?')) {
+      document.querySelectorAll('.score-input').forEach(input => {
+        input.value = '';
+        input.setCustomValidity('');
+        input.classList.remove('invalid');
+      });
+      document.querySelectorAll('.comment').forEach(input => {
+        input.value = '';
+      });
+      scores.forEach(s => {
+        s.team1.score1 = s.team1.score2 = s.team2.score1 = s.team2.score2 = null;
+        s.comment = '';
+      });
+      updateTotal();
+      channel.postMessage({
+        type: 'reset',
+        id: SESSION_ID,
+        judgeId: JUDGE_ID
+      });
+    }
+  });
+
+  // === Приём сообщений ===
+  channel.onmessage = function (event) {
+    const data = event.data;
+
+    if (data.id !== SESSION_ID) return;
+
+    if (data.type === 'update') {
+      const criterion = data.criterion;
+      const team = data.team;
+      const field = data.field;
+      const value = data.value;
+
+      const input = document.querySelector(`[data-criterion="${criterion}"][data-team="${team}"][data-field="${field}"]`);
+      if (input) {
+        input.value = value !== null ? value.toString() : '';
+        input.setCustomValidity('');
+        input.classList.remove('invalid');
+      }
+
+      scores[criterion][`team${team}`][`score${field}`] = value;
+      updateTotal();
+
+    } else if (data.type === 'comment') {
+      const criterion = data.criterion;
+      const value = data.value;
+      const input = document.querySelector(`[data-criterion="${criterion}"].comment`);
+      if (input) input.value = value;
+      scores[criterion].comment = value;
+
+    } else if (data.type === 'reset') {
+      alert('Оценки сброшены другим судьёй.');
+      document.querySelectorAll('.score-input').forEach(input => {
+        input.value = '';
+        input.setCustomValidity('');
+        input.classList.remove('invalid');
+      });
+      document.querySelectorAll('.comment').forEach(input => {
+        input.value = '';
+      });
+      scores.forEach(s => {
+        s.team1.score1 = s.team1.score2 = s.team2.score1 = s.team2.score2 = null;
+        s.comment = '';
+      });
+      updateTotal();
+    }
+
+    if (!document.getElementById('status').textContent.includes('Подключён')) {
+      document.getElementById('status').textContent = `Подключён как судья ${JUDGE_ID.slice(-5)}`;
+    }
+  };
+
+  // === Отображение ссылки ===
+  const url = new URL(window.location);
+  url.searchParams.set('id', SESSION_ID);
+  document.querySelector('.header').insertAdjacentHTML('beforeend', `
+    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+      <strong>Ссылка для судей:</strong> <a href="${url}" target="_blank">${url}</a>
+    </div>
+  `);
+
+  document.getElementById('status').textContent = `Сессия: ${SESSION_ID}`;
+</script>
+
+</body>
+</html>
